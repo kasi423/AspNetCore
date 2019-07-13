@@ -88,27 +88,31 @@ namespace Microsoft.AspNetCore.Mvc.Formatters.Json
         {
             // Arrange
             // Test ensures that the overflow buffer works correctly
-            var input = new string('A', 4096 + 4);
+            var input = "☀";
             var encoding = Encoding.Unicode;
             var stream = new TranscodingReadStream(new MemoryStream(encoding.GetBytes(input)), encoding);
-            var bytes = new byte[4096];
-            var expected = Encoding.UTF8.GetBytes(input.Substring(0, bytes.Length));
+            var bytes = new byte[1];
+            var expected = Encoding.UTF8.GetBytes(input);
 
             // Act
             var readBytes = await stream.ReadAsync(bytes, 0, bytes.Length);
 
             // Assert
-            Assert.Equal(bytes.Length, readBytes);
-            Assert.Equal(expected, bytes);
+            Assert.Equal(1, readBytes);
+            Assert.Equal(expected[0], bytes[0]);
             Assert.Equal(0, stream.ByteBufferCount);
             Assert.Equal(0, stream.CharBufferCount);
-            Assert.Equal(4, stream.OverflowCount);
+            Assert.Equal(2, stream.OverflowCount);
 
+            bytes = new byte[expected.Length - 1];
             readBytes = await stream.ReadAsync(bytes, 0, bytes.Length);
-            Assert.Equal(4, readBytes);
+            Assert.Equal(bytes.Length, readBytes);
             Assert.Equal(0, stream.ByteBufferCount);
             Assert.Equal(0, stream.CharBufferCount);
             Assert.Equal(0, stream.OverflowCount);
+
+            readBytes = await stream.ReadAsync(bytes, 0, bytes.Length);
+            Assert.Equal(0, readBytes);
         }
 
         public static TheoryData ReadAsyncInputLatin =>

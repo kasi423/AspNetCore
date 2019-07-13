@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Formatters.Json;
@@ -65,13 +66,17 @@ namespace Microsoft.AspNetCore.Mvc.Formatters
                 // the behavior you get when the user does not declare the return type and with Json.Net at least at the top level.
                 var objectType = context.Object?.GetType() ?? context.ObjectType;
                 await JsonSerializer.SerializeAsync(writeStream, context.Object, objectType, SerializerOptions);
+                if (writeStream is TranscodingWriteStream transcodingStream)
+                {
+                    await transcodingStream.FinalWriteAsync(CancellationToken.None);
+                }
                 await writeStream.FlushAsync();
             }
             finally
             {
-                if (writeStream is TranscodingWriteStream transcoding)
+                if (writeStream is TranscodingWriteStream transcodingStream)
                 {
-                    await transcoding.DisposeAsync();
+                    await transcodingStream.DisposeAsync();
                 }
             }
         }
